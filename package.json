@@ -6,12 +6,21 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "check:openai-keys": "node scripts/check-openai-keys.mjs"
   },
   "dependencies": {
+    "@langchain/core": "^0.3.24",
+    "@langchain/openai": "^0.3.14",
+    "@tavily/core": "^0.6.3",
+    "eventsource-parser": "^2.0.1",
+    "framer-motion": "^12.23.26",
+    "langchain": "^0.3.9",
     "next": "16.1.1",
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "react-markdown": "^9.1.0",
+    "zod": "^3.24.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
