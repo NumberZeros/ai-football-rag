@@ -194,3 +194,280 @@ export interface GetStandingsParams {
   season: number;
   team?: number;
 }
+
+// Predictions API types
+export interface Prediction {
+  winner: {
+    id: number | null;
+    name: string;
+    comment: string;
+  };
+  win_or_draw: boolean;
+  under_over: string | null;
+  goals: {
+    home: string;
+    away: string;
+  };
+  advice: string;
+  percent: {
+    home: string;
+    draw: string;
+    away: string;
+  };
+}
+
+export interface PredictionComparison {
+  form: {
+    home: string;
+    away: string;
+  };
+  att: {
+    home: string;
+    away: string;
+  };
+  def: {
+    home: string;
+    away: string;
+  };
+  poisson_distribution: {
+    home: string;
+    away: string;
+  };
+  h2h: {
+    home: string;
+    away: string;
+  };
+  goals: {
+    home: string;
+    away: string;
+  };
+  total: {
+    home: string;
+    away: string;
+  };
+}
+
+export interface PredictionData {
+  predictions: Prediction;
+  league: League;
+  teams: {
+    home: {
+      id: number;
+      name: string;
+      logo: string;
+      last_5: {
+        form: string;
+        att: string;
+        def: string;
+        goals: {
+          for: {
+            total: number;
+            average: string;
+          };
+          against: {
+            total: number;
+            average: string;
+          };
+        };
+      };
+      league: {
+        form: string;
+        fixtures: {
+          played: {
+            home: number;
+            away: number;
+            total: number;
+          };
+          wins: {
+            home: number;
+            away: number;
+            total: number;
+          };
+          draws: {
+            home: number;
+            away: number;
+            total: number;
+          };
+          loses: {
+            home: number;
+            away: number;
+            total: number;
+          };
+        };
+        goals: {
+          for: {
+            total: {
+              home: number;
+              away: number;
+              total: number;
+            };
+            average: {
+              home: string;
+              away: string;
+              total: string;
+            };
+          };
+          against: {
+            total: {
+              home: number;
+              away: number;
+              total: number;
+            };
+            average: {
+              home: string;
+              away: string;
+              total: string;
+            };
+          };
+        };
+        biggest: {
+          streak: {
+            wins: number;
+            draws: number;
+            loses: number;
+          };
+          wins: {
+            home: string;
+            away: string;
+          };
+          loses: {
+            home: string;
+            away: string;
+          };
+          goals: {
+            for: {
+              home: number;
+              away: number;
+            };
+            against: {
+              home: number;
+              away: number;
+            };
+          };
+        };
+        clean_sheet: {
+          home: number;
+          away: number;
+          total: number;
+        };
+        failed_to_score: {
+          home: number;
+          away: number;
+          total: number;
+        };
+      };
+    };
+    away: {
+      id: number;
+      name: string;
+      logo: string;
+      last_5: {
+        form: string;
+        att: string;
+        def: string;
+        goals: {
+          for: {
+            total: number;
+            average: string;
+          };
+          against: {
+            total: number;
+            average: string;
+          };
+        };
+      };
+      league: {
+        form: string;
+        fixtures: {
+          played: {
+            home: number;
+            away: number;
+            total: number;
+          };
+          wins: {
+            home: number;
+            away: number;
+            total: number;
+          };
+          draws: {
+            home: number;
+            away: number;
+            total: number;
+          };
+          loses: {
+            home: number;
+            away: number;
+            total: number;
+          };
+        };
+        goals: {
+          for: {
+            total: {
+              home: number;
+              away: number;
+              total: number;
+            };
+            average: {
+              home: string;
+              away: string;
+              total: string;
+            };
+          };
+          against: {
+            total: {
+              home: number;
+              away: number;
+              total: number;
+            };
+            average: {
+              home: string;
+              away: string;
+              total: string;
+            };
+          };
+        };
+        biggest: {
+          streak: {
+            wins: number;
+            draws: number;
+            loses: number;
+          };
+          wins: {
+            home: string;
+            away: string;
+          };
+          loses: {
+            home: string;
+            away: string;
+          };
+          goals: {
+            for: {
+              home: number;
+              away: number;
+            };
+            against: {
+              home: number;
+              away: number;
+            };
+          };
+        };
+        clean_sheet: {
+          home: number;
+          away: number;
+          total: number;
+        };
+        failed_to_score: {
+          home: number;
+          away: number;
+          total: number;
+        };
+      };
+    };
+  };
+  comparison: PredictionComparison;
+  h2h: H2HMatch[];
+}
+
+export interface GetPredictionsParams {
+  fixture: number;
+}

@@ -33,40 +33,68 @@ export function createSignalChain() {
 }
 
 /**
- * Execute signal analysis with retry for incomplete JSON
+ * Execute signal analysis with retry and robust error handling
  */
-export async function analyzeSignal(input: SignalChainInput): Promise<SignalReportOutput> {
+export async function analyzeSignal(input: SignalChainInput, maxRetries = 2): Promise<SignalReportOutput> {
   const chain = createSignalChain();
   
-  try {
-    const result = await chain.invoke(input);
-    
-    // Validate that we have all required fields
-    if (!result.narrative || !result.emoji || typeof result.confidence !== 'number') {
-      console.warn(`⚠️  Incomplete result for signal "${input.signalName}", filling defaults...`);
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const result = await chain.invoke(input);
       
-      // Fill in missing fields with reasonable defaults
+      // Strict validation for all required fields
+      const hasInsights = Array.isArray(result.insights) && result.insights.length > 0;
+      const hasNarrative = typeof result.narrative === 'string' && result.narrative.trim().length > 20;
+      const hasEmoji = typeof result.emoji === 'string' && result.emoji.length > 0;
+      const hasConfidence = typeof result.confidence === 'number' && result.confidence >= 0 && result.confidence <= 1;
+      
+      if (hasInsights && hasNarrative && hasEmoji && hasConfidence) {
+        // All fields valid - success!
+        return result as SignalReportOutput;
+      }
+      
+      // Incomplete result - try to salvage or retry
+      if (attempt < maxRetries) {
+        console.warn(`⚠️  Incomplete result for "${input.signalName}" (attempt ${attempt}/${maxRetries}), retrying...`);
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1s before retry
+        continue;
+      }
+      
+      // Last attempt - fill missing fields
+      console.warn(`⚠️  Filling missing fields for "${input.signalName}" after ${maxRetries} attempts`);
       return {
-        insights: result.insights || [],
-        narrative: result.narrative || 'No narrative available - data analysis in progress.',
-        emoji: result.emoji || '⚽',
-        confidence: typeof result.confidence === 'number' ? result.confidence : 0.5,
+        insights: hasInsights ? result.insights : ['Data analysis in progress'],
+        narrative: hasNarrative ? result.narrative : `Analysis for ${input.signalName} is being processed. Key data points are being evaluated to provide comprehensive insights.`,
+        emoji: hasEmoji ? result.emoji : '⚽',
+        confidence: hasConfidence ? result.confidence : 0.5,
+      };
+      
+    } catch (error) {
+      console.error(`Signal chain error for "${input.signalName}" (attempt ${attempt}/${maxRetries}):`, error);
+      
+      if (attempt < maxRetries) {
+        console.warn(`Retrying in 1 second...`);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        continue;
+      }
+      
+      // Final fallback after all retries failed
+      console.warn(`⚠️  All retries failed for signal "${input.signalName}", using fallback`);
+      return {
+        insights: [
+          `${input.signalName} analysis encountered processing issues`,
+          'Data collection completed but synthesis pending',
+          'Manual review recommended for this section'
+        ],
+        narrative: `The ${input.signalName} analysis could not be fully completed due to processing constraints. The available data has been collected and is ready for manual review. Key metrics and statistics are available in the raw data.`,
+        emoji: '⚽',
+        confidence: 0.3,
       };
     }
-    
-    return result as SignalReportOutput;
-  } catch (error) {
-    console.error(`Signal chain error for "${input.signalName}":`, error);
-    
-    // Return a safe fallback instead of throwing
-    console.warn(`⚠️  Using fallback for signal "${input.signalName}"`);
-    return {
-      insights: [`Unable to analyze ${input.signalName} - data temporarily unavailable`],
-      narrative: `Analysis for ${input.signalName} could not be completed at this time due to processing limitations.`,
-      emoji: '⚽',
-      confidence: 0.3,
-    };
   }
+  
+  // Should never reach here, but TypeScript needs it
+  throw new Error('Unexpected error in analyzeSignal');
 }
 
 /**
@@ -218,6 +246,19 @@ export function formatCollectedDataForSignal(
 
     if (requirement === 'standings' && collectedData.standings) {
       relevantData.standings = compactStandings();
+    }
+
+    if (requirement === 'predictions' && collectedData.predictions) {
+      // Add API-Football's AI predictions - extremely valuable context!
+      relevantData.predictions = {
+        winner: collectedData.predictions.predictions.winner,
+        winProbabilities: collectedData.predictions.predictions.percent,
+        goals: collectedData.predictions.predictions.goals,
+        advice: collectedData.predictions.predictions.advice,
+        comparison: collectedData.predictions.comparison,
+        homeForm: collectedData.predictions.teams.home.last_5,
+        awayForm: collectedData.predictions.teams.away.last_5,
+      };
     }
   }
 

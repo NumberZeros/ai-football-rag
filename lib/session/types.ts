@@ -1,4 +1,4 @@
-import { FixtureData, FixtureStatistics, Injury, Lineup, H2HMatch, Standing } from '../api-football/types';
+import { FixtureData, FixtureStatistics, Injury, Lineup, H2HMatch, Standing, PredictionData } from '../api-football/types';
 
 export type SessionStatus = 'pending' | 'generating' | 'completed' | 'error';
 
@@ -36,6 +36,7 @@ export interface CollectedData {
   lineups?: Lineup[];
   h2h?: H2HMatch[];
   standings?: Standing[][];
+  predictions?: PredictionData | null;
 }
 
 export interface Session {

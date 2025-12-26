@@ -12,6 +12,8 @@ import {
   GetLineupsParams,
   GetH2HParams,
   GetStandingsParams,
+  PredictionData,
+  GetPredictionsParams,
 } from './types';
 
 /**
@@ -162,6 +164,28 @@ export class APIFootballProxy {
       return {
         success: false,
         error: error instanceof APIFootballError ? error.message : 'Failed to fetch standings',
+        statusCode: error instanceof APIFootballError ? error.statusCode : undefined,
+      };
+    }
+  }
+
+  /**
+   * Get AI predictions with error handling
+   */
+  static async getPredictions(params: GetPredictionsParams): Promise<{
+    success: boolean;
+    data?: PredictionData | null;
+    error?: string;
+    statusCode?: number;
+  }> {
+    try {
+      const data = await apiFootballClient.getPredictions(params);
+      return { success: true, data };
+    } catch (error) {
+      console.error('APIFootballProxy.getPredictions error:', error);
+      return {
+        success: false,
+        error: error instanceof APIFootballError ? error.message : 'Failed to fetch predictions',
         statusCode: error instanceof APIFootballError ? error.statusCode : undefined,
       };
     }

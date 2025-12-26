@@ -47,6 +47,7 @@ export async function synthesizeFinalReport(input: FinalChainInput): Promise<Fin
  */
 export function formatCategoryReportsForFinal(categoryReports: Record<string, CategoryReport>): string {
   const formatted = Object.values(categoryReports)
+    .filter(report => report && report.sections && report.talkingPoints) // Filter out undefined/incomplete reports
     .map((report) => {
       const sectionsText = report.sections
         .map((section) => {
@@ -84,7 +85,7 @@ ${talkingPointsText}
  * Format final report output as readable markdown
  */
 export function formatFinalReportAsMarkdown(report: FinalReportOutput): string {
-  const sections = report.sections
+  const sections = (report.sections || [])
     .map((section) => {
       return `
 ## ${section.emoji} ${section.title}
@@ -96,7 +97,7 @@ ${section.content}
     })
     .join('\n');
 
-  const talkingPoints = report.quickTalkingPoints
+  const talkingPoints = (report.quickTalkingPoints || [])
     .map((point, index) => `${index + 1}. ${point}`)
     .join('\n');
 

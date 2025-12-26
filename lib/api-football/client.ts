@@ -12,6 +12,8 @@ import {
   GetLineupsParams,
   GetH2HParams,
   GetStandingsParams,
+  PredictionData,
+  GetPredictionsParams,
 } from './types';
 import { apiFootballCache } from './cache';
 
@@ -152,6 +154,14 @@ class APIFootballClient {
       const data: APIFootballResponse<T> = await response.json();
 
       if (data.errors && Object.keys(data.errors).length > 0) {
+        // Check if it's a rate limit error in the response body
+        const errors = data.errors as any;
+        if (errors.rateLimit && attempt < this.maxRetries) {
+          console.log(`⏳ Rate limit error in response, waiting 12 seconds before retry...`);
+          await new Promise((resolve) => setTimeout(resolve, 12000)); // Wait 12s for rate limit reset
+          return this.request<T>(endpoint, params, attempt + 1);
+        }
+        
         throw new APIFootballError(
           `API-Football returned errors: ${JSON.stringify(data.errors)}`,
           undefined,
@@ -233,6 +243,20 @@ class APIFootballClient {
       params
     );
     return response.response[0]?.league?.standings || [];
+  }
+
+  /**
+   * Get AI predictions for a fixture
+   */
+  async getPredictions(params: GetPredictionsParams): Promise<PredictionData | null> {
+    try {
+      const response = await this.request<PredictionData[]>('/predictions', params);
+      return response.response[0] || null;
+    } catch (error) {
+      // Predictions might not be available for all fixtures
+      console.log(`No predictions available for fixture ${params.fixture}`);
+      return null;
+    }
   }
 }
 

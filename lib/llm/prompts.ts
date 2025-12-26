@@ -18,6 +18,13 @@ Description: {signalDescription}
 **Available Data:**
 {collectedData}
 
+**IMPORTANT: If predictions data is available**, it includes:
+- Win probabilities from API-Football's AI (home/draw/away percentages)
+- Expected goals predictions
+- Form analysis and team comparisons
+- Professional betting advice
+USE THIS DATA to enhance your analysis with expert predictions!
+
 **Instructions:**
 1. Extract 3-5 key insights from the data
 2. Write a cohesive narrative paragraph (100-150 words) connecting the insights
@@ -31,15 +38,25 @@ Description: {signalDescription}
 - Focus on what matters for commentators and analysts
 - Write in English
 
-**IMPORTANT - You MUST return a complete JSON object with ALL four fields:**
+**CRITICAL OUTPUT REQUIREMENTS:**
+You MUST return a complete JSON object with ALL FOUR fields. NO EXCEPTIONS.
+
+REQUIRED FORMAT (copy this structure exactly):
 {{
   "insights": ["insight 1", "insight 2", "insight 3"],
-  "narrative": "Your paragraph narrative connecting the insights...",
+  "narrative": "Your 100-150 word paragraph narrative connecting the insights. This field is MANDATORY and must be a complete paragraph, not empty.",
   "emoji": "⚽",
   "confidence": 0.85
 }}
 
-Do NOT return incomplete JSON. All four fields (insights, narrative, emoji, confidence) are REQUIRED.
+⚠️ VALIDATION RULES:
+- "insights": Array with 3-5 strings (REQUIRED)
+- "narrative": String with 100-150 words (REQUIRED, cannot be empty)
+- "emoji": Single emoji character (REQUIRED)
+- "confidence": Number between 0 and 1 (REQUIRED)
+
+If data is limited, still provide ALL fields with best estimates.
+Do NOT skip any field. Do NOT return partial JSON.
 `);
 
 /**
