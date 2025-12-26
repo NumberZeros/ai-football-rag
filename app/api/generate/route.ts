@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { sessionManager } from '@/lib/session/manager';
 import { generateReport } from '@/lib/orchestrator/generator';
 import { ProgressUpdate } from '@/lib/orchestrator/progress-tracker';
+import { rateLimiter, formatResetTime } from '@/lib/utils/rate-limiter';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -43,9 +44,34 @@ function sseImmediateError(message: string, extra?: Record<string, any>) {
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const sessionId = searchParams.get('sessionId');
+  const customApiKey = searchParams.get('customApiKey');
 
   if (!sessionId) {
     return sseImmediateError('Missing sessionId parameter');
+  }
+
+  // Check rate limit (bypass if custom API key provided)
+  if (!customApiKey) {
+    const limitCheck = rateLimiter.checkLimit(request);
+    if (!limitCheck.allowed) {
+      const resetTime = limitCheck.limitType === 'minute'
+        ? formatResetTime(limitCheck.resetAt.minute)
+        : limitCheck.limitType === 'hour'
+        ? formatResetTime(limitCheck.resetAt.hour)
+        : formatResetTime(limitCheck.resetAt.day);
+      
+      return sseImmediateError(
+        `Rate limit exceeded. You can try again in ${resetTime}, or provide your own OpenAI API key to bypass limits.`,
+        {
+          code: 'RATE_LIMIT_EXCEEDED',
+          limitType: limitCheck.limitType,
+          resetAt: limitCheck.resetAt,
+          remaining: limitCheck.remaining,
+        }
+      );
+    }
+    // Record request
+    rateLimiter.recordRequest(request);
   }
 
   const session = sessionManager.getSession(sessionId);

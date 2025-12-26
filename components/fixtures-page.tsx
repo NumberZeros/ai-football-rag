@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FadeIn, StaggerContainer, StaggerItem } from '@/components/animations';
 import { FixtureData } from '@/lib/api-football/types';
+import ApiKeyInput from '@/components/api-key-input';
 
 // Top leagues with ranking (for sorting by attractiveness)
 const TOP_LEAGUES = [
@@ -29,6 +30,9 @@ export default function FixturesPage() {
   const [generatingFixtureId, setGeneratingFixtureId] = useState<number | null>(null);
   const [selectedLeague, setSelectedLeague] = useState<number | null>(null);
   const [leagueCounts, setLeagueCounts] = useState<Record<number, number>>({});
+  const [customApiKey, setCustomApiKey] = useState<string | null>(null);
+  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
+  const [rateLimitError, setRateLimitError] = useState<any>(null);
 
   useEffect(() => {
     fetchFixtures();
@@ -107,6 +111,7 @@ export default function FixturesPage() {
   const handleGenerate = async (fixtureId: number) => {
     try {
       setGeneratingFixtureId(fixtureId);
+      setRateLimitError(null);
 
       // Create session
       const response = await fetch('/api/session', {
@@ -118,14 +123,33 @@ export default function FixturesPage() {
       const data = await response.json();
 
       if (!response.ok) {
+        // Handle rate limit error
+        if (response.status === 429) {
+          setRateLimitError(data);
+          setShowApiKeyModal(true);
+          setGeneratingFixtureId(null);
+          return;
+        }
         throw new Error(data.error || 'Failed to create session');
       }
 
-      // Navigate to report page
-      router.push(`/report/${data.sessionId}`);
+      // Navigate to report page with custom API key if provided
+      const url = customApiKey 
+        ? `/report/${data.sessionId}?customApiKey=${encodeURIComponent(customApiKey)}`
+        : `/report/${data.sessionId}`;
+      router.push(url);
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to generate report');
       setGeneratingFixtureId(null);
+    }
+  };
+
+  const handleApiKeySubmit = (apiKey: string) => {
+    setCustomApiKey(apiKey);
+    setRateLimitError(null);
+    // Retry generating if there was a rate limit error
+    if (generatingFixtureId) {
+      handleGenerate(generatingFixtureId);
     }
   };
 
@@ -461,6 +485,51 @@ export default function FixturesPage() {
           );
         })}
       </div>
+
+      {/* API Key Input Modal */}
+      <ApiKeyInput
+        isOpen={showApiKeyModal}
+        onClose={() => setShowApiKeyModal(false)}
+        onApiKeySubmit={handleApiKeySubmit}
+      />
+
+      {/* Rate Limit Warning Banner */}
+      {rateLimitError && !showApiKeyModal && (
+        <motion.div
+          initial={{ opacity: 0, y: 50 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 50 }}
+          className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-96 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4 shadow-lg z-40"
+        >
+          <div className="flex items-start gap-3">
+            <svg className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-amber-900 dark:text-amber-100 mb-1">
+                Rate Limit Reached
+              </p>
+              <p className="text-xs text-amber-800 dark:text-amber-200">
+                {rateLimitError.error}
+              </p>
+              <button
+                onClick={() => setShowApiKeyModal(true)}
+                className="mt-2 text-xs font-medium text-amber-700 dark:text-amber-300 hover:text-amber-900 dark:hover:text-amber-100 underline"
+              >
+                Use your own API key →
+              </button>
+            </div>
+            <button
+              onClick={() => setRateLimitError(null)}
+              className="text-amber-400 hover:text-amber-600 dark:hover:text-amber-200"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </motion.div>
+      )}
     </div>
   );
 }

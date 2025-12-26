@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sessionManager } from '@/lib/session/manager';
 import { chatWithContext } from '@/lib/llm/chains/chat-chain';
+import { rateLimiter, formatResetTime } from '@/lib/utils/rate-limiter';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -11,7 +12,29 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { sessionId, message } = body;
+    const { sessionId, message, customApiKey } = body;
+
+    // Check rate limit (bypass if custom API key provided)
+    if (!customApiKey) {
+      const limitCheck = rateLimiter.checkLimit(request);
+      if (!limitCheck.allowed) {
+        const resetTime = limitCheck.limitType === 'minute' 
+          ? formatResetTime(limitCheck.resetAt.minute)
+          : limitCheck.limitType === 'hour'
+          ? formatResetTime(limitCheck.resetAt.hour)
+          : formatResetTime(limitCheck.resetAt.day);
+        
+        return NextResponse.json(
+          { 
+            error: `Rate limit exceeded. You can try again in ${resetTime}, or provide your own OpenAI API key to bypass limits.`,
+            limitType: limitCheck.limitType,
+            resetAt: limitCheck.resetAt,
+            remaining: limitCheck.remaining,
+          },
+          { status: 429 }
+        );
+      }
+    }
 
     if (!sessionId || typeof sessionId !== 'string') {
       return NextResponse.json({ error: 'Invalid sessionId' }, { status: 400 });
@@ -19,6 +42,11 @@ export async function POST(request: NextRequest) {
 
     if (!message || typeof message !== 'string') {
       return NextResponse.json({ error: 'Invalid message' }, { status: 400 });
+    }
+
+    // Record request for rate limiting (only if using default API key)
+    if (!customApiKey) {
+      rateLimiter.recordRequest(request);
     }
 
     const session = sessionManager.getSession(sessionId);
